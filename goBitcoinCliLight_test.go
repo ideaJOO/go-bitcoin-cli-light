@@ -185,3 +185,46 @@ func TestGetRawTransaction(t *testing.T) {
 	}
 	fmt.Printf("\n\n== result ==\n%s\n", jsonString)
 }
+
+func TestGetNewAddress(t *testing.T) {
+
+	bitcoinRpc := BitcoinRpc{
+		RpcUser:    "ideajoo",
+		RpcPW:      "ideajoo123",
+		RpcConnect: "127.0.0.1",
+		RpcPort:    "18332",
+	}
+
+	tWallet := "test"
+	resultNewAddress, err := bitcoinRpc.GetNewAddress(tWallet, "", "")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("\n\n== result ==\n%s\n", resultNewAddress)
+	// tb1qa6v5vvpagj7lqnummqff0jm086y3vq3jjc9r90
+}
+
+func TestListReceivedByAddress(t *testing.T) {
+	bitcoinRpc := BitcoinRpc{
+		RpcUser:    "ideajoo",
+		RpcPW:      "ideajoo123",
+		RpcConnect: "127.0.0.1",
+		RpcPort:    "18332",
+	}
+
+	tWallet := "test"
+	resultListReceivedByAddress, err := bitcoinRpc.ListReceivedByAddress(tWallet, 1, true, true, "")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	jsonString, err := json.Marshal(resultListReceivedByAddress)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("\n\n== result ==\n%s\n", jsonString)
+
+}

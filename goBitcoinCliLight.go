@@ -13,6 +13,7 @@ type BitcoinRpc struct {
 	RpcPW      string
 	RpcConnect string
 	RpcPort    string
+	RpcPath    string
 }
 
 func defaultJsonRpcInfo() (info map[string]interface{}) {
@@ -24,7 +25,7 @@ func defaultJsonRpcInfo() (info map[string]interface{}) {
 
 func (bitcoinRpc BitcoinRpc) request(jsonRpcBytes []byte) (body []byte, err error) {
 
-	request, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%s/", bitcoinRpc.RpcConnect, bitcoinRpc.RpcPort), bytes.NewBuffer(jsonRpcBytes))
+	request, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%s/%s", bitcoinRpc.RpcConnect, bitcoinRpc.RpcPort, bitcoinRpc.RpcPath), bytes.NewBuffer(jsonRpcBytes))
 	if err != nil {
 		err = fmt.Errorf("@requestJsonRpc: %s", err)
 		return
@@ -444,6 +445,103 @@ func (bitcoinRpc BitcoinRpc) GetRawTransaction(txID string) (rawTxInfo map[strin
 	rawTxInfo["confirmations"] = result.RaxTx.Confirmations
 	rawTxInfo["blocktime"] = result.RaxTx.BlockTime
 	rawTxInfo["time"] = result.RaxTx.Time
+
+	return
+}
+
+func (bitcoinRpc BitcoinRpc) GetNewAddress(walletName string, label string, addressType string) (newAddress string, err error) {
+
+	bitcoinRpc.RpcPath = fmt.Sprintf("wallet/%s", walletName)
+	jsonRpcInfo := defaultJsonRpcInfo()
+	params := make([]string, 0)
+	params = append(params, label)
+	switch addressType {
+	case "":
+		break
+	case "legacy", "p2sh-segwit", "bech32":
+		params = append(params, addressType)
+	default:
+		err = fmt.Errorf("error!!! @GetNewAddress: incorrect addressType[%s]", addressType)
+		return
+	}
+	jsonRpcInfo["method"] = "getnewaddress"
+	jsonRpcInfo["params"] = params
+	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
+	if err != nil {
+		err = fmt.Errorf("error!!! @GetNewAddress: %s", err)
+		return
+	}
+
+	body, err := bitcoinRpc.request(jsonRpcBytes)
+	if err != nil {
+		err = fmt.Errorf("@GetNewAddress: %s", err)
+		return
+	}
+
+	type resultGetNewAddress struct {
+		NewAddress string `json:"result"`
+	}
+	result := resultGetNewAddress{}
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		err = fmt.Errorf("@GetNewAddress(): %s", err)
+		return
+	}
+
+	newAddress = result.NewAddress
+
+	return
+}
+
+func (bitcoinRpc BitcoinRpc) ListReceivedByAddress(walletName string, minconf int, includeEmpty bool, includeWatchonly bool, addressFilter string) (results []map[string]interface{}, err error) {
+
+	bitcoinRpc.RpcPath = fmt.Sprintf("wallet/%s", walletName)
+
+	jsonRpcInfo := defaultJsonRpcInfo()
+	jsonRpcInfo["method"] = "listreceivedbyaddress"
+	jsonRpcInfo["params"] = []interface{}{minconf, includeEmpty, includeWatchonly, addressFilter}
+	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
+	if err != nil {
+		err = fmt.Errorf("error!!! @ListReceivedByAddress: %s", err)
+		return
+	}
+
+	body, err := bitcoinRpc.request(jsonRpcBytes)
+	if err != nil {
+		err = fmt.Errorf("@ListReceivedByAddress: %s", err)
+		return
+	}
+
+	type ListReceivedByAddressInfo struct {
+		InvolvesWatchOnly bool     `json:"involvesWatchonly"`
+		Address           string   `json:"address"`
+		Amount            float64  `json:"amount"`
+		Confirmations     int64    `json:"confirmations"`
+		Label             string   `json:"label"`
+		TxIDs             []string `json:"txids"`
+	}
+	type ResultListReceivedByAddress struct {
+		Infos []ListReceivedByAddressInfo `json:"result"`
+	}
+
+	bodyResult := ResultListReceivedByAddress{}
+	err = json.Unmarshal(body, &bodyResult)
+	if err != nil {
+		err = fmt.Errorf("@ListReceivedByAddress(): %s", err)
+		return
+	}
+
+	results = make([]map[string]interface{}, 0)
+	for _, info := range bodyResult.Infos {
+		tResult := make(map[string]interface{})
+		tResult["address"] = info.Address
+		tResult["amount"] = info.Amount
+		tResult["confirmations"] = info.Confirmations
+		tResult["involvesWatchonly"] = info.InvolvesWatchOnly
+		tResult["label"] = info.Label
+		tResult["txids"] = info.TxIDs
+		results = append(results, tResult)
+	}
 
 	return
 }
