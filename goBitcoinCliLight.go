@@ -116,9 +116,10 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 	for outAddress, outAmount := range outAddresses {
 		tParamsAddress := make(map[string]interface{})
 		outAmount = math.Round((outAmount)*100000000) / 100000000
-		if outAmount > 0.00000000 {
-			tParamsAddress[outAddress] = outAmount
+		if outAmount <= 0.00000000 {
+			continue
 		}
+		tParamsAddress[outAddress] = outAmount
 		tCreateTxOuts = append(tCreateTxOuts, tParamsAddress)
 	}
 
