@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 )
 
@@ -113,7 +114,10 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 
 	tCreateTxData := make(map[string]interface{})
 	tCreateTxData["data"] = outDataHex
-	tCreateTxData[outAddress] = outAmount
+	outAmount = math.Round((outAmount)*100000000) / 100000000
+	if outAmount > 0.00000000 {
+		tCreateTxData[outAddress] = outAmount
+	}
 
 	jsonRpcInfo := defaultJsonRpcInfo()
 	jsonRpcInfo["method"] = "createrawtransaction"

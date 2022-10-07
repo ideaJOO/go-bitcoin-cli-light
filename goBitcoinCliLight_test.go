@@ -13,6 +13,7 @@ func TestListUnspentOfAddress(t *testing.T) {
 		RpcPW:      "ideajoo123",
 		RpcConnect: "127.0.0.1",
 		RpcPort:    "18332",
+		RpcPath:    "wallet/test_07",
 	}
 
 	result, err := bitcoinRpc.ListUnspentOfAddress("tb1q8yu29c59hlmem3hed28f49k4f3kwwkrv4smgkh")
