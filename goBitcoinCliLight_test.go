@@ -42,25 +42,28 @@ func TestCreateRawTransaction(t *testing.T) {
 	inTxUnspents := make([]map[string]interface{}, 0)
 
 	tmpUnspent := make(map[string]interface{})
-	tmpUnspent["txid"] = "b0ea0b9f9bb6326bc4d339a71ea41f7592f0f9dd9ddcb7d6b14edcb6959d1944"
+	tmpUnspent["txid"] = "789cb8c274df8820b1c817bff91476661c3300bfeb3fa382c42520c9b888a1b3"
 	tmpUnspent["vout"] = 1
 	inTxUnspents = append(inTxUnspents, tmpUnspent)
 
 	tmpUnspent = make(map[string]interface{})
-	tmpUnspent["txid"] = "9879656fa7bbb23075ecb74db1faa24251c95098cf07d5fdb654ca0b01a5a455"
+	tmpUnspent["txid"] = "4b4c1a2f4adc0f8b1058cdb1509847b174223feeedbd83740e7edad03c1149bc"
 	tmpUnspent["vout"] = 1
 	inTxUnspents = append(inTxUnspents, tmpUnspent)
 
-	outAmount := 0.00024000
+	outAddress := make(map[string]float64)
+	outAddress["tb1q8yu29c59hlmem3hed28f49k4f3kwwkrv4smgkh"] = 0.00002000
+	outAddress["tb1q3flg4mlnuk2xexu773g8d4lh6nl48rc6w6vhsm"] = 0.00003000
+
 	outDataHex := "48454c4c4f20696465616a6f6f2f676f2d626974636f696e2d636c692d6c69676874" // "HELLO ideajoo/go-bitcoin-cli-light"
-	outAddress := "tb1q8yu29c59hlmem3hed28f49k4f3kwwkrv4smgkh"
-	result, err := bitcoinRpc.CreateRawTransaction(inTxUnspents, outAddress, outAmount, outDataHex)
+
+	result, err := bitcoinRpc.CreateRawTransaction(inTxUnspents, outAddress, outDataHex)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	fmt.Printf("\n\n== result ==\n%+v\n", result)
+	fmt.Printf("\n\n== result rawTx ==\n%+v\n", result)
 	// 020000000244199d95b6dc4eb1d6b7dc9dddf9f092751fa41ea739d3c46b32b69b9f0beab00100000000fdffffff55a4a5010bca54b6fdd507cf9850c95142a2fab14db7ec7530b2bba76f6579980100000000fdffffff020000000000000000246a2248454c4c4f20696465616a6f6f2f676f2d626974636f696e2d636c692d6c69676874c05d0000000000001600143938a2e285bff79dc6f96a8e9a96d54c6ce7586c00000000
 }
 

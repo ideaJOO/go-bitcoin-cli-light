@@ -108,29 +108,42 @@ func (bitcoinRpc BitcoinRpc) ListUnspentOfAddress(address string) (result []map[
 	return
 }
 
-func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]interface{}, outAddress string, outAmount float64, outDataHex string) (rawTx string, err error) {
+func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]interface{}, outAddresses map[string]float64, outDataHex string) (rawTx string, err error) {
 
-	// inTxUnspents must have "txid" / "vout"
+	tCreateTxOuts := make([]map[string]interface{}, 0)
 
-	tCreateTxData := make(map[string]interface{})
-	tCreateTxData["data"] = outDataHex
-	outAmount = math.Round((outAmount)*100000000) / 100000000
-	if outAmount > 0.00000000 {
-		tCreateTxData[outAddress] = outAmount
+	// outParamsAddressAmount
+	for outAddress, outAmount := range outAddresses {
+		tParamsAddress := make(map[string]interface{})
+		outAmount = math.Round((outAmount)*100000000) / 100000000
+		if outAmount > 0.00000000 {
+			tParamsAddress[outAddress] = outAmount
+		}
+		tCreateTxOuts = append(tCreateTxOuts, tParamsAddress)
+	}
+
+	// outParamsData
+	if outDataHex != "" {
+		tCreateTxOuts = append(tCreateTxOuts, map[string]interface{}{"data": outDataHex})
+	}
+
+	if len(tCreateTxOuts) == 0 {
+		err = fmt.Errorf("error!!! @CreateRawTransaction: incorrect outAddresses and outDataHex")
+		return
 	}
 
 	jsonRpcInfo := defaultJsonRpcInfo()
 	jsonRpcInfo["method"] = "createrawtransaction"
-	jsonRpcInfo["params"] = []interface{}{inTxUnspents, tCreateTxData}
+	jsonRpcInfo["params"] = []interface{}{inTxUnspents, tCreateTxOuts}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @CreateRawTransaction: %s", err)
+		err = fmt.Errorf("@CreateRawTransaction: json.Marshal(jsonRpcInfo) %s", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@CreateRawTransaction: %s", err)
+		err = fmt.Errorf("@CreateRawTransaction: bitcoinRpc.request(jsonRpcBytes) %s", err)
 		return
 	}
 
@@ -140,10 +153,15 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 	result := resultCreateRaxTx{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@CreateRawTransaction(): %s", err)
+		err = fmt.Errorf("@CreateRawTransaction(): json.Unmarshal(body, &result) %s", err)
 		return
 	}
 	rawTx = result.RawTx
+
+	if rawTx == "" {
+		err = fmt.Errorf("@CreateRawTransaction(): result rawTx is empty")
+		return
+	}
 
 	return
 }
