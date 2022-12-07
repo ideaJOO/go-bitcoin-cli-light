@@ -28,7 +28,7 @@ func (bitcoinRpc BitcoinRpc) request(jsonRpcBytes []byte) (body []byte, err erro
 
 	request, err := http.NewRequest("POST", fmt.Sprintf("http://%s:%s/%s", bitcoinRpc.RpcConnect, bitcoinRpc.RpcPort, bitcoinRpc.RpcPath), bytes.NewBuffer(jsonRpcBytes))
 	if err != nil {
-		err = fmt.Errorf("@requestJsonRpc: %s", err)
+		err = fmt.Errorf("@http.NewRequest('POST', ...): %v", err)
 		return
 	}
 	request.Header.Set("content-type", "text/plain;")
@@ -37,13 +37,13 @@ func (bitcoinRpc BitcoinRpc) request(jsonRpcBytes []byte) (body []byte, err erro
 	client := &http.Client{}
 	resp, err := client.Do(request)
 	if err != nil {
-		err = fmt.Errorf("@requestJsonRpc: %s", err)
+		err = fmt.Errorf("@client.Do(request): %v", err)
 		return
 	}
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		err = fmt.Errorf("@requestJsonRpc: %s", err)
+		err = fmt.Errorf("@io.ReadAll(resp.Body): %v", err)
 		return
 	}
 	return
@@ -57,13 +57,13 @@ func (bitcoinRpc BitcoinRpc) ListUnspentOfAddress(address string) (result []map[
 	jsonRpcInfo["params"] = []interface{}{1, 9999999, []string{address}}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @ListUnspentOfAddress: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v. %+v", err, jsonRpcInfo)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("error!!! @ListUnspentOfAddress: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -90,16 +90,20 @@ func (bitcoinRpc BitcoinRpc) ListUnspentOfAddress(address string) (result []map[
 	bodyResult := resultListUnspent{}
 	err = json.Unmarshal(body, &bodyResult)
 	if err != nil {
-		err = fmt.Errorf("@ListUnspentOfAddress(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &bodyResult): %s", err)
 		return
 	}
 
 	for _, listUnspent := range bodyResult.ListUnspents {
 		tmpMap := make(map[string]interface{})
-		inrec, _ := json.Marshal(listUnspent)
+		inrec, errInner := json.Marshal(listUnspent)
+		if errInner != nil {
+			err = fmt.Errorf("@json.Marshal(listUnspent): %v", err)
+			return
+		}
 		err = json.Unmarshal(inrec, &tmpMap)
 		if err != nil {
-			err = fmt.Errorf("@ListUnspentOfAddress(): %s", err)
+			err = fmt.Errorf("@json.Unmarshal(inrec, &tmpMap): %v", err)
 			return
 		}
 		result = append(result, tmpMap)
@@ -129,7 +133,7 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 	}
 
 	if len(tCreateTxOuts) == 0 {
-		err = fmt.Errorf("error!!! @CreateRawTransaction: incorrect outAddresses and outDataHex")
+		err = fmt.Errorf("len(tCreateTxOuts) == 0 : incorrect outAddresses and outDataHex")
 		return
 	}
 
@@ -138,13 +142,13 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 	jsonRpcInfo["params"] = []interface{}{inTxUnspents, tCreateTxOuts}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("@CreateRawTransaction: json.Marshal(jsonRpcInfo) %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@CreateRawTransaction: bitcoinRpc.request(jsonRpcBytes) %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -154,13 +158,13 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 	result := resultCreateRaxTx{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@CreateRawTransaction(): json.Unmarshal(body, &result) %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 	rawTx = result.RawTx
 
 	if rawTx == "" {
-		err = fmt.Errorf("@CreateRawTransaction(): result rawTx is empty")
+		err = fmt.Errorf("rawTx == '': rawTx of result is empty")
 		return
 	}
 
@@ -174,13 +178,13 @@ func (bitcoinRpc BitcoinRpc) DumpPrivateKey(address string) (privKey string, err
 	jsonRpcInfo["params"] = []interface{}{address}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @DumpPrivateKey: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@DumpPrivateKey: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -190,7 +194,7 @@ func (bitcoinRpc BitcoinRpc) DumpPrivateKey(address string) (privKey string, err
 	result := resultDumpPrivateKey{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@DumpPrivateKey(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -206,13 +210,13 @@ func (bitcoinRpc BitcoinRpc) SignRawTransactionWithKey(rawTx string, privKey str
 	jsonRpcInfo["params"] = []interface{}{rawTx, []string{privKey}}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @SignRawTransactionWithKey: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@SignRawTransactionWithKey(): %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -224,13 +228,13 @@ func (bitcoinRpc BitcoinRpc) SignRawTransactionWithKey(rawTx string, privKey str
 		SignedRawTxInfo signedRawTxInfo `json:"result"`
 	}
 
-	tmpBody := string(body)
-	fmt.Printf("%s", tmpBody)
+	// tmpBody := string(body)
+	// fmt.Printf("%s", tmpBody)
 
 	result := resultSignedRawTxInfo{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@SignRawTransactionWithKey(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -246,13 +250,13 @@ func (bitcoinRpc BitcoinRpc) SendRawTransaction(signedRawTx string) (txID string
 	jsonRpcInfo["params"] = []interface{}{signedRawTx}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @SendRawTransaction: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@SendRawTransaction: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -262,7 +266,7 @@ func (bitcoinRpc BitcoinRpc) SendRawTransaction(signedRawTx string) (txID string
 	result := resultSendRawTx{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@SendRawTransaction(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -277,13 +281,13 @@ func (bitcoinRpc BitcoinRpc) GetBlockCount() (blockCount int64, err error) {
 	jsonRpcInfo["params"] = []interface{}{}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @GetBlockCount: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@GetBlockCount: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -293,7 +297,7 @@ func (bitcoinRpc BitcoinRpc) GetBlockCount() (blockCount int64, err error) {
 	result := resultGetBlockCount{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@GetBlockCount(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -308,13 +312,13 @@ func (bitcoinRpc BitcoinRpc) GetBlockHash(blockNumber int64) (blockHash string, 
 	jsonRpcInfo["params"] = []interface{}{blockNumber}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @GetBlockHash: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@GetBlockHash: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -324,7 +328,7 @@ func (bitcoinRpc BitcoinRpc) GetBlockHash(blockNumber int64) (blockHash string, 
 	result := resultGetBlockHash{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@GetBlockHash(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -339,13 +343,13 @@ func (bitcoinRpc BitcoinRpc) GetBlock(blockHash string) (block map[string]interf
 	jsonRpcInfo["params"] = []interface{}{blockHash}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @GetBlock: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@GetBlock: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -363,7 +367,7 @@ func (bitcoinRpc BitcoinRpc) GetBlock(blockHash string) (block map[string]interf
 	result := resultGetBlock{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@GetBlock(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -386,13 +390,13 @@ func (bitcoinRpc BitcoinRpc) GetRawTransaction(txID string) (rawTxInfo map[strin
 	jsonRpcInfo["params"] = []interface{}{txID, true}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("@GetRawTransaction: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@GetRawTransaction: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -433,7 +437,7 @@ func (bitcoinRpc BitcoinRpc) GetRawTransaction(txID string) (rawTxInfo map[strin
 	result := resultGetRawTx{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@GetRawTransaction(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -484,20 +488,20 @@ func (bitcoinRpc BitcoinRpc) GetNewAddress(walletName string, label string, addr
 	case "legacy", "p2sh-segwit", "bech32":
 		params = append(params, addressType)
 	default:
-		err = fmt.Errorf("error!!! @GetNewAddress: incorrect addressType[%s]", addressType)
+		err = fmt.Errorf("incorrect addressType[%s]", addressType)
 		return
 	}
 	jsonRpcInfo["method"] = "getnewaddress"
 	jsonRpcInfo["params"] = params
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @GetNewAddress: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@GetNewAddress: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -507,7 +511,7 @@ func (bitcoinRpc BitcoinRpc) GetNewAddress(walletName string, label string, addr
 	result := resultGetNewAddress{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		err = fmt.Errorf("@GetNewAddress(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &result): %v", err)
 		return
 	}
 
@@ -525,13 +529,13 @@ func (bitcoinRpc BitcoinRpc) ListReceivedByAddress(walletName string, minconf in
 	jsonRpcInfo["params"] = []interface{}{minconf, includeEmpty, includeWatchonly, addressFilter}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
-		err = fmt.Errorf("error!!! @ListReceivedByAddress: %s", err)
+		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v", err)
 		return
 	}
 
 	body, err := bitcoinRpc.request(jsonRpcBytes)
 	if err != nil {
-		err = fmt.Errorf("@ListReceivedByAddress: %s", err)
+		err = fmt.Errorf("@bitcoinRpc.request(jsonRpcBytes): %v", err)
 		return
 	}
 
@@ -550,7 +554,7 @@ func (bitcoinRpc BitcoinRpc) ListReceivedByAddress(walletName string, minconf in
 	bodyResult := ResultListReceivedByAddress{}
 	err = json.Unmarshal(body, &bodyResult)
 	if err != nil {
-		err = fmt.Errorf("@ListReceivedByAddress(): %s", err)
+		err = fmt.Errorf("@json.Unmarshal(body, &bodyResult): %v", err)
 		return
 	}
 
