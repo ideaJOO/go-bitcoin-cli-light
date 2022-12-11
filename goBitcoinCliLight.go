@@ -120,7 +120,10 @@ func (bitcoinRpc BitcoinRpc) CreateRawTransaction(inTxUnspents []map[string]inte
 	for outAddress, outAmount := range outAddresses {
 		tParamsAddress := make(map[string]interface{})
 		outAmount = math.Round((outAmount)*100000000) / 100000000
-		if outAmount <= 0.00000000 {
+		if outAmount < 0.00000000 {
+			// Only Filtering when minus-amount
+			// Zero-amount is needed sometimes
+			// Zero-amount will be controlled on service
 			continue
 		}
 		tParamsAddress[outAddress] = outAmount
