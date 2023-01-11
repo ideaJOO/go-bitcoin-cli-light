@@ -49,12 +49,19 @@ func (bitcoinRpc BitcoinRpc) request(jsonRpcBytes []byte) (body []byte, err erro
 	return
 }
 
-func (bitcoinRpc BitcoinRpc) ListUnspentOfAddress(address string) (result []map[string]interface{}, err error) {
+func (bitcoinRpc BitcoinRpc) ListUnspentOfAddress(minconf int, maxconf int, addresses []string) (result []map[string]interface{}, err error) {
+
+	if minconf <= 1 || minconf >= 9999999 {
+		minconf = 1 // Default
+	}
+	if maxconf <= 1 || maxconf >= 9999999 {
+		maxconf = 9999999 // Default
+	}
 
 	result = make([]map[string]interface{}, 0)
 	jsonRpcInfo := defaultJsonRpcInfo()
 	jsonRpcInfo["method"] = "listunspent"
-	jsonRpcInfo["params"] = []interface{}{1, 9999999, []string{address}}
+	jsonRpcInfo["params"] = []interface{}{minconf, maxconf, addresses}
 	jsonRpcBytes, err := json.Marshal(jsonRpcInfo)
 	if err != nil {
 		err = fmt.Errorf("@json.Marshal(jsonRpcInfo): %v. %+v", err, jsonRpcInfo)

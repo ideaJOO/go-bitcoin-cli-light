@@ -16,7 +16,7 @@ func TestListUnspentOfAddress(t *testing.T) {
 		RpcPath:    "wallet/test_07",
 	}
 
-	result, err := bitcoinRpc.ListUnspentOfAddress("tb1q8yu29c59hlmem3hed28f49k4f3kwwkrv4smgkh")
+	result, err := bitcoinRpc.ListUnspentOfAddress(0, 0, []string{"tb1q8yu29c59hlmem3hed28f49k4f3kwwkrv4smgkh", "tb1qmhqe8pr06v0mefelardj4h6hkq095e5dh72mv3"})
 	if err != nil {
 		fmt.Println(err.Error())
 		return
